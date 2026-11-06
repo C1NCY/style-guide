@@ -1,0 +1,6 @@
+# robotics-style-guide v1.0.0
+# PROS exposes almost everything through umbrella headers, so clangd's
+# "included header is not used directly" warning is noise for them.
+# If you already have a .clangd with existing directives copy and paste this into the existing file  
+Diagnostics:
+  UnusedIncludes: None
