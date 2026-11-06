@@ -4,3 +4,12 @@
 # If you already have a .clangd with existing directives copy and paste this into the existing file  
 Diagnostics:
   UnusedIncludes: None
+
+# Checks doc comments: wrong @param names, @return on void functions, and similar.
+CompileFlags:
+  Add: [-Wdocumentation]
+
+# Formats Doxygen tags in hover. Needs a recent clangd; older versions ignore it
+# and show the comment as plain text.
+Documentation:
+  CommentFormat: Doxygen

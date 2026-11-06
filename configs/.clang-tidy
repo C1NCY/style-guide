@@ -5,7 +5,9 @@ Checks: >
   readability-braces-around-statements,
   modernize-use-nullptr,
   modernize-use-override,
-  google-build-using-namespace
+  google-build-using-namespace,
+  google-readability-todo,
+  clang-diagnostic-documentation
 CheckOptions:
   - {key: readability-braces-around-statements.ShortStatementLines, value: 1}
   - {key: readability-identifier-naming.ClassCase, value: CamelCase}

@@ -41,7 +41,7 @@ Also:
 - Groups of ports are plural (`kLeftMotorPorts`); a single port is the device plus `Port` (`kImu1Port`). A port list can be a `const std::vector<std::int8_t>`; use `constexpr std::array` instead if you want it `constexpr`.
 - Gains name the controller and the term: `kTurnKp`, `kLateralKd`.
 - Compute derived values from other constants instead of typing the result: `kWheelCircumference = kWheelDiameter * std::numbers::pi`.
-- Comment every constant: unit, frame or direction if it matters, and where the number came from (measured, tuned, datasheet).
+- Comment every constant: unit, frame or direction if it matters, and where the number came from (measured, tuned, datasheet), using the one-line doc comment from section 5.
 
 ## 2. Files, Headers and Scoping
 
@@ -52,7 +52,7 @@ Also:
 - Use `#pragma once` instead of Google's `#define` guards **(Project)**.
 - Include what you use (e.g. `<cmath>` for `std::cos`); never rely on transitive includes; remove unused ones. Umbrella headers (`api.h`, `main.h`, `lemlib/api.hpp`) are exempt: keep them even when the editor calls them unused **(Project)**.
 - Avoid forward declarations; include the header.
-- Include order: related header, C system, C++ standard, other libraries (PROS, LemLib, units), project. Blank line between groups, alphabetical within each. clang-format enforces this (section 6).
+- Include order: related header, C system, C++ standard, other libraries (PROS, LemLib, units), project. Blank line between groups, alphabetical within each. clang-format enforces this (section 7).
 - `main.h`: don't reorder its includes or `#define`s (`PROS_USE_SIMPLE_NAMES` changes which macros exist). Wrap it in `// clang-format off` / `// clang-format on` **(Project)**.
 
 **Scoping**
@@ -61,7 +61,7 @@ Also:
 - File-local code goes in an unnamed namespace in the `.cpp`, never in a header. Close with `}  // namespace`.
 - Prefer namespaced free functions over classes with only static members.
 - Declare locals in the narrowest scope and initialize at declaration.
-- Static/global objects should be trivially destructible and constants `constexpr`. The exceptions are hardware objects in `main.cpp` (see section 5) and constants whose type can't be `constexpr`, such as a port `std::vector`.
+- Static/global objects should be trivially destructible and constants `constexpr`. The exceptions are hardware objects in `main.cpp` (see section 6) and constants whose type can't be `constexpr`, such as a port `std::vector`.
 - **Configuration (Project).** All tunables (ports, offsets, gains) live in `constants.h` (see section 1). Each port number appears once.
 
 ## 3. Classes
@@ -86,7 +86,60 @@ Also:
 - **Magic numbers:** no unnamed numeric literals in logic; name them in `constants.h` or a local `constexpr`.
 - **Arrays:** prefer `std::array` over C arrays, and `std::span` over pointer plus size if the toolchain supports it.
 
-## 5. PROS and Robot Rules (Project)
+## 5. Comments
+
+Every class, public function, and constant with a unit or a source gets a Doxygen comment in this format, on its declaration in the header. clangd shows it when you hover over the name anywhere in the project.
+
+```cpp
+/**
+ * @brief Wraps an angle to the range [0, 360).
+ * @param deg The angle to wrap, in degrees.
+ * @return The wrapped angle, in degrees.
+ */
+double Wrap360(double deg);
+```
+
+With a longer description and a warning:
+
+```cpp
+/**
+ * @brief Drives to a field point and waits until the robot settles.
+ *
+ * Uses the odometry pose, so the chassis must be calibrated first.
+ *
+ * @param x_in Target x in the field frame, inches.
+ * @param y_in Target y in the field frame, inches.
+ * @param timeout_ms Give up after this long; 0 means no timeout.
+ * @return True if the robot settled, false if it timed out.
+ * @warning Blocks the calling task. Never call it from the opcontrol() loop.
+ */
+bool MoveToPoint(double x_in, double y_in, int timeout_ms);
+```
+
+Constants use the one-line form:
+
+```cpp
+/** @brief Distance between the left and right wheel centers, inches (measured 2026-10-12). */
+inline constexpr double kTrackWidth = 12.5;
+```
+
+Rules:
+
+- **Layout:** `/**` alone on the first line, every line starts with ` * `, and ` */` on the last line. A longer description goes after `@brief`, separated by a blank ` *` line, with another blank line before the tags.
+- **`@brief` first:** one sentence starting with a verb ("Returns", "Drives", "Calibrates") and ending with a period. This is the line hover shows first.
+- **`@param`:** one per parameter, in declaration order, with the name spelled exactly as in the declaration. State the unit, frame, or range when the name doesn't already say it.
+- **`@return`:** for non-void functions. Give the unit and the error value (`PROS_ERR`, `PROS_ERR_F`). Leave it off `void` functions.
+- **`@note` / `@warning`:** for blocking calls, thread safety, and angle wrapping.
+- **Always state:** the unit, the reference frame, and wrapped heading vs. unbounded rotation.
+- **Tag style:** `@param`, not `\param`.
+- **Placement:** directly above the declaration with no blank line between, in the header. Don't repeat it on the `.cpp` definition.
+- **Skip the obvious:** trivial accessors, overrides that behave like the base class, and constants whose names say everything (such as `kImu1Port`).
+
+**Other comments.** Use plain `//` inside function bodies and for private helpers in `.cpp` files. Explain why, not what. Follow-ups use `// TODO(name): text`, which clang-tidy checks. Don't leave commented-out code.
+
+**Checks and hover.** `-Wdocumentation` (set in `.clangd`) flags `@param` names that don't match the declaration, `@return` on a `void` function, and other doc-comment mistakes. Doxygen formatting in the hover needs a recent clangd and the `Documentation: CommentFormat: Doxygen` setting, which `.clangd` already contains. Older clangd versions show the tags as plain lines, which is still readable (see the README troubleshooting).
+
+## 6. PROS and Robot Rules (Project)
 
 | Topic | Rule | Why |
 | --- | --- | --- |
@@ -103,7 +156,7 @@ Also:
 | Unit conversion | Convert once, where the raw value is read (e.g. centidegrees to radians). | Keeps units from leaking through the code. |
 | Motor ports | A negative port means a reversed motor. Note this once, next to the port lists. | The sign is easy to miss. |
 
-## 6. Formatting and Tooling
+## 7. Formatting and Tooling
 
 Formatting is whatever **clang-format with the Google preset** produces, with the changes below. No need to format by hand. The config files live in this repo's `configs/` folder and are copied into each robot repo's root (see the [README](README.md)).
 
@@ -114,14 +167,15 @@ Formatting is whatever **clang-format with the Google preset** produces, with th
 | Line length | 80 columns | 100 (PROS, LemLib and units names are long) |
 | Include grouping | Regroup by Google's categories | Regroup by ours (section 2) |
 | Wrapped calls | Bin-packed arguments | One argument/parameter per line once it doesn't fit |
+| Line endings | Not specified | LF in every repo |
 
 **Config files**
 
 | File | What it does |
 | --- | --- |
 | `.clang-format` | Formats code. Run on save. Enforces include order, line length and wrapping. |
-| `.clang-tidy` | Checks naming (the table in section 1), braces on multi-line bodies, `nullptr`, `override`, and `using namespace`. Warnings show in the editor through clangd. |
-| `.clangd` | Silences the "header not used directly" warning |
+| `.clang-tidy` | Checks naming (the table in section 1), braces on multi-line bodies, `nullptr`, `override`, `using namespace`, and the `// TODO(name):` format. Warnings show in the editor through clangd. |
+| `.clangd` | Silences the "header not used directly" warning, checks doc comments (`-Wdocumentation`), and turns on Doxygen formatting in hover. |
 
 Each file starts with a comment naming the guide version it came from.
 
@@ -134,7 +188,7 @@ Each file starts with a comment naming the guide version it came from.
 - `main.h` is protected by its `// clang-format off` / `// clang-format on` markers. Use those markers sparingly and nowhere else.
 - Keep renames and reformatting in separate commits from behavior changes.
 
-## 7. Review Checklist (Project)
+## 8. Review Checklist (Project)
 
 Before merging:
 
@@ -144,8 +198,8 @@ Before merging:
 - Sensor values are checked for `PROS_ERR` / `PROS_ERR_F` before use.
 - Angles state their unit and wrapping; no subtraction of two wrapped headings.
 - Shared data between tasks is mutex-guarded; no heap allocation in control loops.
+- New classes, public functions and constants have `/** @brief */` comments in the header, and the `@param` names match.
 
-## 8. Known Deviations (Project)
+## 9. Known Deviations (Project)
 
 A robot repo that has to break a rule says so in a "Known deviations" section of its README: the rule, the reason, and the date. Single lines use `// NOLINT(check-name)` with a short reason. Don't edit the copied config files without recording the change there; if the change is useful for every robot, propose it here instead.
-

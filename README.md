@@ -10,6 +10,7 @@
 | `configs/.clang-tidy` | Naming and basic code-quality checks. |
 | `configs/.clangd` | Quiets the unused-include warning for PROS umbrella headers. |
 
+
 ## Adopting it in a robot repo
 
 The tools can only read config files that sit in the robot repo's root, so the guide is linked and
@@ -21,9 +22,9 @@ the configs are copied.
    `https://github.com/C1NCY/style-guide/blob/v1.0.0/STYLE_GUIDE.md`
 3. **Turn on format on save in VS Code** (`"editor.formatOnSave": true`) and restart clangd
    (**clangd: Restart language server**).
-4. **Recommended**: add a `.gitattributes` file to the robot repo containing `* text=auto eol=lf` so Windows and Linux checkouts agree on line endings.
+4. Recommended: add a .gitattributes file to the robot repo containing `* text=auto eol=lf` so Windows and Linux checkouts agree on line endings.
 5. **Add a "Known deviations" section** to the robot README (rule, reason, date), even if it only
-   says "none". See section 8 of the guide.
+   says "none". See section 9 of the guide.
 
 Don't commit `compile_commands.json`; it contains machine-specific paths. Add it and clangd's
 `.cache/` folder to the robot repo's `.gitignore`.
@@ -56,5 +57,12 @@ Stay on your current version during competition season unless a change is worth 
 
 - **No tidy warnings at all:** `compile_commands.json` is missing, or `.clang-tidy` isn't in the
   robot repo's root. Run `pros build-compile-commands`, then restart clangd.
+- **`clang-format` or `clang-tidy` not found in the terminal:** restart the terminal after installing,
+  and check that the install location is on your PATH (or use the `pip` install).
+- **Hover shows `@brief` / `@param` as plain text:** Doxygen formatting needs a recent clangd (support
+  was added in 2025) and the `Documentation: CommentFormat: Doxygen` setting from `.clangd`. Check
+  your clangd version in the VS Code Output panel (choose "clangd"), then run **clangd: Check for
+  language server update**. If you installed clangd yourself, point `"clangd.path"` at the new one.
+  On older versions the comment is still readable as plain text.
 - **Standard headers like `<cstdint>` not found:** add
   `"clangd.arguments": ["--query-driver=**/arm-none-eabi-*"]` to `.vscode/settings.json`.
